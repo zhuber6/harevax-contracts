@@ -19,7 +19,7 @@ const forkingData = FORK_FUJI ? {
 } : undefined
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.4",
+  solidity: "0.8.13",
   networks: {
     hardhat: {
       gasPrice: 225000000000,
@@ -53,7 +53,7 @@ const config: HardhatUserConfig = {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   paths: {
-    sources: "./contracts",
+    sources: "./src",
     tests: "./hh-test",
     cache: "./hh-cache",
     artifacts: "./artifacts"
