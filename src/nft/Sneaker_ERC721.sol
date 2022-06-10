@@ -16,11 +16,13 @@ contract Sneaker_ERC721 is
 {
     using Counters for Counters.Counter;
 
+    error InvalidAmountToMint();
+
     // Royalty
     uint256 constant public ROYALTY_PERCENT = 5;
     address public royaltiesReceiver;
     
-    uint256 constant public MAX_TOKENS = 10000;
+    uint32 constant public MAX_TOKENS = 10000;
     
     //For chainlink VRF
     VRFCoordinatorV2Interface COORDINATOR;
@@ -93,13 +95,15 @@ contract Sneaker_ERC721 is
     }
 
     function batchMint(address to, uint32 amountToMint) public virtual onlyRole(MINTER_ROLE) {
+        if (amountToMint == 0) revert InvalidAmountToMint();
         uint256 currentTokenId = _tokenIdTracker.current();
-        require(currentTokenId + amountToMint <= MAX_TOKENS, "Sneaker_ERC721: mint would exceed max number of tokens");
+        // require(currentTokenId + amountToMint <= MAX_TOKENS, "Sneaker_ERC721: mint would exceed max number of tokens");
+        if (currentTokenId + amountToMint > MAX_TOKENS) revert InvalidAmountToMint();
         uint256 requestId = COORDINATOR.requestRandomWords(
             keyHash,
             s_subscriptionId,
             requestConfirmations,
-            17*10**4 * amountToMint + 17*10**4,
+            20*10**4 * amountToMint + 20*10**4,
             amountToMint
         );
         requestIdToSender[requestId] = to;
@@ -127,7 +131,7 @@ contract Sneaker_ERC721 is
         uint8 randClass;
         int256 mu;
         uint256 sigma;
-        int[] memory randomNorm = new int[](4);
+        int[] memory randomNorm = new int[](3);
         
         address nftOwner = requestIdToSender[requestId];
         uint256 amountToMint = requestIdToNumMint[requestId];
@@ -143,15 +147,15 @@ contract Sneaker_ERC721 is
             newStats.generation = 0;
 
             if ( randClass <= 50 ) {
-                newStats.class = 0; mu = 17; sigma = 4; }
+                newStats.class = 0; mu = 18; sigma = 3; }
             else if ( randClass > 50 && randClass <= 80 ) {
-                newStats.class = 1; mu = 25; sigma = 2; }
+                newStats.class = 1; mu = 31; sigma = 1; }
             else if ( randClass > 80 && randClass <= 90 ) {
-                newStats.class = 2; mu = 42; sigma = 4; }
+                newStats.class = 2; mu = 43; sigma = 3; }
             else if ( randClass > 90 && randClass <= 97 ) {
-                newStats.class = 3; mu = 63; sigma = 6; }
+                newStats.class = 3; mu = 64; sigma = 5; }
             else if ( randClass > 97 ) {
-                newStats.class = 4; mu = 83; sigma = 3; }
+                newStats.class = 4; mu = 84; sigma = 3; }
 
             randomNorm = NormalRNG(
                 randomWords[i-1],
