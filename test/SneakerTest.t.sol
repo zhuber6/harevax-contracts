@@ -50,7 +50,8 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
             address(this),
             address(vrfCoordinator),
             keyHash,
-            subId
+            subId,
+            address(mockHrx)
         );
 
         // give *this contract* the MINTER_ROLE to on sneaker_erc721
@@ -85,7 +86,7 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
         assertEq(mockHrx.balanceOf(treasury), distributor.MINT_PRICE());
     }
 
-    function testhMint() public {
+    function testMint() public {
         sneaker_erc721.mint(address(this));
         vrfCoordinator.fulfillRandomWords(1, address(sneaker_erc721));
         assertEq(sneaker_erc721.balanceOf(address(this)), 1);
