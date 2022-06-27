@@ -92,6 +92,36 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
         assertEq(sneaker_erc721.balanceOf(address(this)), 1);
     }
 
+    function testBreed() public {
+        // Create distributor contract
+        Sneaker_ERC721_Distributor distributor = new Sneaker_ERC721_Distributor(sneaker_erc721, mockHrx, treasury);
+
+        // give the distributor contract the MINTER_ROLE to on sneaker_erc721
+        sneaker_erc721.grantRole(MINTER_ROLE, address(distributor));
+
+        sneaker_erc721.batchMint(address(this), 2);
+        vrfCoordinator.fulfillRandomWords(1, address(sneaker_erc721));
+        assertEq(sneaker_erc721.balanceOf(address(this)), 2);
+
+        uint256[] memory tokenIds = new uint256[](2);
+        tokenIds[0] = 1;
+        tokenIds[1] = 2;
+
+        // Mint HRX to this address and approve mint price amount
+        mockHrx.mint(address(this), 1e24);
+        uint256 breedCost = distributor.canBreed(tokenIds, address(this));
+        mockHrx.approve(address(distributor), breedCost);
+
+        distributor.breed(tokenIds);
+        vrfCoordinator.fulfillRandomWords(2, address(sneaker_erc721));
+        assertEq(sneaker_erc721.balanceOf(address(this)), 3);
+        assertEq(mockHrx.balanceOf(address(this)), 1e24 - breedCost);
+
+        SneakerStats memory stats1 = sneaker_erc721.getSneakerStats(1);
+        SneakerStats memory stats2 = sneaker_erc721.getSneakerStats(2);
+        SneakerStats memory stats3 = sneaker_erc721.getSneakerStats(3);
+    }
+
     function testBatchMintFuzz(uint32 amount) public {
         vm.assume(amount > 0);
         vm.assume(amount < 10000);

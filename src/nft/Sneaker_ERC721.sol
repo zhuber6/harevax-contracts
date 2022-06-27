@@ -18,8 +18,6 @@ contract Sneaker_ERC721 is
     using Counters for Counters.Counter;
 
     error InvalidAmountToMint();
-    error InvalidNumOfTokens();
-    error InvalidBalance();
 
     // Royalty
     uint256 constant public ROYALTY_PERCENT = 5;
@@ -49,7 +47,6 @@ contract Sneaker_ERC721 is
     // HRX Token
     IERC20 public immutable HRX_Token;
     uint256 public currentGen;
-    uint256[15] public breedFee;
     uint256[5] public mintProbabilities;
     uint256[5][5][5][2] public breedProbs;
     uint256[5][2] public normalParams;  // mu and sigma
@@ -82,12 +79,6 @@ contract Sneaker_ERC721 is
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _registerInterface(type(IERC2981).interfaceId);
         HRX_Token = IERC20(_HRX_Token);
-        breedFee = [
-            250e18, 301e18, 377e18, 491e18,
-            664e18, 923e18, 1313e18, 1901e18,
-            2785e18, 4115e18, 6118e18, 9133e18,
-            13670e18, 20499e18, 30778e18
-        ];
         mintProbabilities = [500, 800, 900, 975, 1000];
         normalParams[0] = [18, 31, 43, 64, 84];
         normalParams[1] = [3, 1, 3, 5, 3];
@@ -198,26 +189,14 @@ contract Sneaker_ERC721 is
         requestIdToNumProbs[requestId] = mintProbabilities;
     }
 
-    function breed(uint256[] calldata tokenIds, address owner) external {
-        if (tokenIds.length != 2) revert InvalidNumOfTokens();
-        if (balanceOf(owner) < 2) revert InvalidBalance();
-
-        require(
-            ownerOf(tokenIds[0]) == owner &&
-            ownerOf(tokenIds[1]) == owner,
-            "Not owner of NFTs"
-        );
-
+    function breed(uint256[] calldata tokenIds, address owner) public onlyRole(MINTER_ROLE) {
         _breed(tokenIds[0], tokenIds[1], owner);
     }
 
-    function _breed(uint256 tokenId1, uint256 tokenId2, address owner) internal returns (uint256) {
+    function _breed(uint256 tokenId1, uint256 tokenId2, address owner) internal {
         SneakerStats[] memory stats = new SneakerStats[](2);
         stats[0] = tokenIdToSneakerStats[tokenId1];
         stats[1] = tokenIdToSneakerStats[tokenId2];
-
-        uint32 feeIndex = stats[0].factoryUsed + stats[1].factoryUsed;
-        require(HRX_Token.balanceOf(owner) > breedFee[feeIndex], "Not enough HRX");
 
         // Generate new random number to assign to stats, finish mint in callback function.
         // Will revert if subscription is not set and funded.
