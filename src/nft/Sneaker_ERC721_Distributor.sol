@@ -21,10 +21,7 @@ contract Sneaker_ERC721_Distributor is ISneaker_ERC721, Ownable {
 
     error MintNotAllowed();
     error InvalidNumOfTokens();
-    error InvalidOwnerBalanceErc721();
-    error InvalidOwnerBalanceErc20();
-    error TokensNotOwnedBySender();
-    error BreedNotAllowed();
+    error BreedNotAllowed(uint256 errorCode);
 
     constructor(
         Sneaker_ERC721 _sneaker_erc721,
@@ -74,8 +71,7 @@ contract Sneaker_ERC721_Distributor is ISneaker_ERC721, Ownable {
         stats[0] = sneaker_erc721.getSneakerStats(tokenIds[0]);
         stats[1] = sneaker_erc721.getSneakerStats(tokenIds[1]);
 
-        uint32 feeIndex = stats[0].factoryUsed + stats[1].factoryUsed;
-        if (HRX_Token.balanceOf(user) < breedFee[feeIndex]) {
+        if (HRX_Token.balanceOf(user) < _getBreedFee(tokenIds)) {
             return 3;
         }
 
@@ -83,19 +79,29 @@ contract Sneaker_ERC721_Distributor is ISneaker_ERC721, Ownable {
             return 4;
         }
 
+        return 0;
+    }
+
+    function getBreedFee(uint256[] calldata tokenIds) public view returns(uint256) {
+        return _getBreedFee(tokenIds);
+    }
+
+    function _getBreedFee(uint256[] calldata tokenIds) internal view returns(uint256) {
+        SneakerStats[] memory stats = new SneakerStats[](2);
+        stats[0] = sneaker_erc721.getSneakerStats(tokenIds[0]);
+        stats[1] = sneaker_erc721.getSneakerStats(tokenIds[1]);
+
+        uint32 feeIndex = stats[0].factoryUsed + stats[1].factoryUsed;
         return breedFee[feeIndex];
     }
     
     function breed(uint256[] calldata tokenIds) public {
         if (tokenIds.length != 2) revert InvalidNumOfTokens();
         
-        uint256 breedVal = canBreed(tokenIds, msg.sender);
-        if (breedVal == 1) revert InvalidOwnerBalanceErc721();
-        if (breedVal == 2) revert TokensNotOwnedBySender();
-        if (breedVal == 3) revert InvalidOwnerBalanceErc20();
-        if (breedVal == 4) revert BreedNotAllowed();
+        uint256 canBreedVal = canBreed(tokenIds, msg.sender);
+        if (canBreedVal != 0) revert BreedNotAllowed(canBreedVal);
 
-        HRX_Token.transferFrom(msg.sender, treasury, breedVal);
+        HRX_Token.transferFrom(msg.sender, treasury, _getBreedFee(tokenIds));
         sneaker_erc721.breed(tokenIds, msg.sender);
     }
 }

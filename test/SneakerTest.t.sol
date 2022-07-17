@@ -60,6 +60,8 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
 
     function testDistributor() public {
 
+        uint256 counter = 0;
+
         // Create distributor contract
         Sneaker_ERC721_Distributor distributor = new Sneaker_ERC721_Distributor(sneaker_erc721, mockHrx, treasury);
 
@@ -76,14 +78,19 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
 
         // Try to mint again with necessary HRX tokens
         distributor.mint();
-        vrfCoordinator.fulfillRandomWords(1, address(sneaker_erc721));
+        vrfCoordinator.fulfillRandomWords(++counter, address(sneaker_erc721));
+
+        // Try to mint again with necessary HRX tokens
+        mockHrx.approve(address(distributor), distributor.MINT_PRICE());
+        distributor.mint();
+        vrfCoordinator.fulfillRandomWords(++counter, address(sneaker_erc721));
 
         // Verify mint went through
-        assertEq(distributor.tokensMinted(address(this)), 1);
-        assertEq(sneaker_erc721.balanceOf(address(this)), 1);
-        assertEq(mockHrx.balanceOf(address(this)), 1e24 - distributor.MINT_PRICE());
+        assertEq(distributor.tokensMinted(address(this)), counter);
+        assertEq(sneaker_erc721.balanceOf(address(this)), counter);
+        assertEq(mockHrx.balanceOf(address(this)), 1e24 - distributor.MINT_PRICE() * counter);
         assertEq(mockHrx.allowance(address(this), address(distributor)), 0);
-        assertEq(mockHrx.balanceOf(treasury), distributor.MINT_PRICE());
+        assertEq(mockHrx.balanceOf(treasury), distributor.MINT_PRICE() * counter);
     }
 
     function testMint() public {
@@ -93,33 +100,53 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
     }
 
     function testBreed() public {
+        uint256 counter = 0;
+        uint32 numOfMintedErc721 = 5;
+
         // Create distributor contract
         Sneaker_ERC721_Distributor distributor = new Sneaker_ERC721_Distributor(sneaker_erc721, mockHrx, treasury);
 
         // give the distributor contract the MINTER_ROLE to on sneaker_erc721
         sneaker_erc721.grantRole(MINTER_ROLE, address(distributor));
 
-        sneaker_erc721.batchMint(address(this), 2);
-        vrfCoordinator.fulfillRandomWords(1, address(sneaker_erc721));
-        assertEq(sneaker_erc721.balanceOf(address(this)), 2);
+        sneaker_erc721.batchMint(address(this), numOfMintedErc721);
+        vrfCoordinator.fulfillRandomWords(++counter, address(sneaker_erc721));
+        assertEq(sneaker_erc721.balanceOf(address(this)), numOfMintedErc721);
 
         uint256[] memory tokenIds = new uint256[](2);
         tokenIds[0] = 1;
-        tokenIds[1] = 2;
+        tokenIds[1] = 3;
 
         // Mint HRX to this address and approve mint price amount
         mockHrx.mint(address(this), 1e24);
-        uint256 breedCost = distributor.canBreed(tokenIds, address(this));
+        assertEq(distributor.canBreed(tokenIds, address(this)), 0);
+        uint256 breedCost = distributor.getBreedFee(tokenIds);
         mockHrx.approve(address(distributor), breedCost);
 
         distributor.breed(tokenIds);
-        vrfCoordinator.fulfillRandomWords(2, address(sneaker_erc721));
-        assertEq(sneaker_erc721.balanceOf(address(this)), 3);
+        vrfCoordinator.fulfillRandomWords(++counter, address(sneaker_erc721));
+        assertEq(sneaker_erc721.balanceOf(address(this)), numOfMintedErc721 + 1);
         assertEq(mockHrx.balanceOf(address(this)), 1e24 - breedCost);
+        assertEq(mockHrx.balanceOf(address(treasury)), breedCost);
 
-        SneakerStats memory stats1 = sneaker_erc721.getSneakerStats(1);
-        SneakerStats memory stats2 = sneaker_erc721.getSneakerStats(2);
-        SneakerStats memory stats3 = sneaker_erc721.getSneakerStats(3);
+        SneakerStats memory stats;
+        for (uint256 i = 1; i <= 6; i++) {
+            tokenIds[0] = 1;
+            tokenIds[1] = 3;
+
+            assertEq(distributor.canBreed(tokenIds, address(this)), 0);
+            breedCost = distributor.getBreedFee(tokenIds);
+            mockHrx.approve(address(distributor), breedCost);
+
+            distributor.breed(tokenIds);
+            vrfCoordinator.fulfillRandomWords(++counter, address(sneaker_erc721));
+            
+            stats = sneaker_erc721.getSneakerStats(i);
+        }
+
+        // Try to mint pair that cannot mint anymore
+        assertEq(distributor.canBreed(tokenIds, address(this)), 4);
+
     }
 
     function testBatchMintFuzz(uint32 amount) public {
