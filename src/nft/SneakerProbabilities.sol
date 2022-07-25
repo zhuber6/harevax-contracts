@@ -91,7 +91,6 @@ contract SneakerProbabilities is ISneakerProbabilities {
         return mintProbabilities;
     }
 
-
     function NormalRNG(
         uint256 random_number,
         uint256 _mu,

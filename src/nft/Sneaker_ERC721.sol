@@ -26,31 +26,32 @@ contract Sneaker_ERC721 is
     uint32 constant public MAX_TOKENS = 10000;
     
     //For chainlink VRF v2
-    VRFCoordinatorV2Interface COORDINATOR;
-    uint64 s_subscriptionId;
-    address vrfCoordinator;
-    bytes32 keyHash;
+    VRFCoordinatorV2Interface private COORDINATOR;
+    uint64 public s_subscriptionId;
+    address private vrfCoordinator;
+    bytes32 private keyHash;
 
     // Depends on the number of requested values that you want sent to the
     // fulfillRandomWords() function. Storing each word costs about 20,000 gas.
-    uint32 callbackGasLimit = 10000000;
+    uint32 private callbackGasLimit = 10000000;
 
     // The default is 3.
-    uint16 requestConfirmations = 3;
+    uint16 private requestConfirmations = 3;
 
     // URI Database
-    IURIDatabase public uriDatabase;
+    IURIDatabase private uriDatabase;
 
     // NFT Housekeeping and probability arrays set during deployment
     uint256 public currentGen;
-    ISneakerProbabilities public sneakerProbs;
-    uint256[5][2] public normalParams;  // mu and sigma
+    ISneakerProbabilities private sneakerProbs;
+    uint256[5] private mu;
+    uint256[5] private sigma;
 
     // Mappings
     mapping(uint256 => address) private requestIdToSender;
     mapping(uint256 => uint256) private requestIdToNumMint;
     mapping(uint256 => SneakerStats) public tokenIdToSneakerStats;
-    mapping(uint256 => uint256[5]) public requestIdToNumProbs;
+    mapping(uint256 => uint256[5]) private requestIdToNumProbs;
 
     constructor(
         string memory _name,
@@ -82,8 +83,8 @@ contract Sneaker_ERC721 is
         uriDatabase = IURIDatabase(_uriDatabase);
         
         // Setup normal distribution parameters
-        normalParams[0] = [18, 31, 43, 64, 84];
-        normalParams[1] = [3, 1, 3, 5, 3];
+        mu = [18, 31, 43, 64, 84];
+        sigma = [3, 1, 3, 5, 3];
 
         sneakerProbs = ISneakerProbabilities(_sneakerProbs);
     }
@@ -110,8 +111,8 @@ contract Sneaker_ERC721 is
 
     function batchMint(address to, uint32 amountToMint) public virtual onlyRole(MINTER_ROLE) {
         if (amountToMint == 0) revert InvalidAmountToMint();
-        uint256 currentTokenId = _tokenIdTracker.current();
-        if (currentTokenId + amountToMint > MAX_TOKENS) revert InvalidAmountToMint();
+        if (_tokenIdTracker.current() + amountToMint > MAX_TOKENS) revert InvalidAmountToMint();
+        
         uint256 requestId = COORDINATOR.requestRandomWords(
             keyHash,
             s_subscriptionId,
@@ -167,24 +168,6 @@ contract Sneaker_ERC721 is
         uriDatabase = _uriDatabase;
     }
 
-    /**
-     * @dev Returns the wallet of a given wallet. Mainly for ease for frontend devs.
-     * @param _wallet The wallet to get the tokens of.
-     */
-    function walletOfOwner(address _wallet)
-        public
-        view
-        returns (uint256[] memory)
-    {
-        uint256 tokenCount = balanceOf(_wallet);
-
-        uint256[] memory tokensId = new uint256[](tokenCount);
-        for (uint256 i; i < tokenCount; i++) {
-            tokensId[i] = tokenOfOwnerByIndex(_wallet, i);
-        }
-        return tokensId;
-    }
-
     function fulfillRandomWords(
         uint256 requestId,
         uint256[] memory randomWords
@@ -212,8 +195,8 @@ contract Sneaker_ERC721 is
 
             randomNorm = sneakerProbs.NormalRNG(
                 randomWords[i-1],
-                normalParams[0][newStats.class],
-                normalParams[1][newStats.class],
+                mu[newStats.class],
+                sigma[newStats.class],
                 3
             );
 
