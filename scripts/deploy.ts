@@ -33,10 +33,15 @@ export async function deployContracts() {
   // Deploy URI database
   const URIDatabaseFactory: ContractFactory = await ethers.getContractFactory("URIDatabase");
   const uriDatabaseContract: Contract = await URIDatabaseFactory.deploy();
+  
+  // Deploy URI database
+  const SneakerProbsFactory: ContractFactory = await ethers.getContractFactory("SneakerProbabilities");
+  const sneakerProbsContract: Contract = await SneakerProbsFactory.deploy();
 
   // Deploy Sneaker contract
   const sneakerContract: Contract = await deploySneakerFuji(
-    uriDatabaseContract.address
+    uriDatabaseContract.address,
+    sneakerProbsContract.address
   );
 
   // Deploy ERC721 Distributor contract

@@ -25,14 +25,14 @@ const config: HardhatUserConfig = {
       gasPrice: 225000000000,
       chainId: 43114,
       forking: forkingData,
-      allowUnlimitedContractSize: true
+      // allowUnlimitedContractSize: true
     },
     local: {
       url: 'http://localhost:8545/ext/bc/C/rpc',
       gasPrice: 225000000000,
       chainId: 43114,
       timeout: 100000,
-      allowUnlimitedContractSize: true
+      // allowUnlimitedContractSize: true
     },
     fuji: {
       url: 'https://api.avax-test.network/ext/bc/C/rpc',

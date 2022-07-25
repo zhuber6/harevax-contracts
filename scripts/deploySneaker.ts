@@ -2,7 +2,8 @@ import {Contract} from "ethers";
 import {ethers} from "hardhat";
 
 export async function deploySneakerMain(
-    uriDatabaseAddress: string
+    uriDatabaseAddress: string,
+    sneakerProbsAddress: string
 ): Promise<Contract> {
   // Avalanche Mainnet Chainlink VRF Coordinator
   const vrfCordMain = "0xd5D517aBE5cF79B7e95eC98dB0f0277788aFF634";
@@ -21,7 +22,8 @@ export async function deploySneakerMain(
     vrfCordMain,
     keyHashMain,
     subIdMain,
-    uriDatabaseAddress
+    uriDatabaseAddress,
+    sneakerProbsAddress
   );
 
   // Add the sneaker contract as the consumer
@@ -35,7 +37,8 @@ export async function deploySneakerMain(
 }
 
 export async function deploySneakerFuji(
-  uriDatabaseAddress: string
+  uriDatabaseAddress: string,
+  sneakerProbsAddress: string
 ): Promise<Contract> {
   // Avalanche Fuji Testnet Chainlink VRF Coordinator
   const vrfCordFuji = "0x2eD832Ba664535e5886b75D64C46EB9a228C2610";
@@ -54,7 +57,8 @@ export async function deploySneakerFuji(
     vrfCordFuji,
     keyHashFuji,
     subIdFuji,
-    uriDatabaseAddress
+    uriDatabaseAddress,
+    sneakerProbsAddress
   );
 
   // Add the sneaker contract as the consumer

@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "src/token/ERC20MintableBurnableCapped.sol";
 import "src/nft/Sneaker_ERC721.sol";
 import "src/nft/ISneaker_ERC721.sol";
+import "src/nft/SneakerProbabilities.sol";
 import "src/nft/Sneaker_ERC721_Distributor.sol";
 import "src/nft/URIDatabase.sol";
 import "./mocks/LinkToken.sol";
@@ -34,6 +35,7 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
     ERC20MintableBurnableCapped public mockHrx;
     Sneaker_ERC721 public sneaker_erc721;
     SneakerStats public stats;
+    SneakerProbabilities public probabilities;
 
     function setUp() public {
         linkToken = new LinkToken();
@@ -47,6 +49,8 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
         uriDatabase_721 = new URIDatabase();
         uriDatabase_721.setBaseURI("testURI/");
 
+        probabilities = new SneakerProbabilities();
+
         sneaker_erc721 = new Sneaker_ERC721(
             "HRX Sneaker",
             "HRX Sneaker",
@@ -54,7 +58,8 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
             address(vrfCoordinator),
             keyHash,
             subId,
-            address(uriDatabase_721)
+            address(uriDatabase_721),
+            address(probabilities)
         );
 
         // give *this contract* the MINTER_ROLE to on sneaker_erc721
