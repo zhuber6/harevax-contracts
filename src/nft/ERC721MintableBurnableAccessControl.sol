@@ -4,8 +4,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-// import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
@@ -25,8 +24,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
  */
 contract ERC721MintableBurnableAccessControl is
     AccessControlEnumerable,
-    // ERC721Burnable
-    ERC721URIStorage
+    ERC721Burnable
 {
     using Counters for Counters.Counter;
 
@@ -76,19 +74,6 @@ contract ERC721MintableBurnableAccessControl is
         // can be burned (destroyed), so we need a separate counter.
         _tokenIdTracker.increment();
         _safeMint(to, _tokenIdTracker.current());
-    }
-
-    /**
-     * @dev Burns `tokenId`. See {ERC721-_burn}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
-     */
-    function burn(uint256 tokenId) public virtual {
-        //solhint-disable-next-line max-line-length
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721Burnable: caller is not owner nor approved");
-        _burn(tokenId);
     }
 
     /**

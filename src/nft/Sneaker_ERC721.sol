@@ -4,37 +4,30 @@ pragma solidity ^0.8.0;
 
 import "./ERC721Complete.sol";
 import "./ISneaker_ERC721.sol";
+import "./IURIDatabase.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
 contract Sneaker_ERC721 is 
     ISneaker_ERC721,
     ERC721Complete,
-    IERC2981,
     VRFConsumerBaseV2
 {
     using Counters for Counters.Counter;
 
+    // Errors
     error InvalidAmountToMint();
-
-    // Royalty
-    uint256 constant public ROYALTY_PERCENT = 5;
-    address public royaltiesReceiver;
+    error invalidTokenID();
+    error zeroAddress();
+    error maxTokens();
     
     uint32 constant public MAX_TOKENS = 10000;
     
-    //For chainlink VRF
+    //For chainlink VRF v2
     VRFCoordinatorV2Interface COORDINATOR;
     uint64 s_subscriptionId;
-    
-    // Avalanche feed
-    // address vrfCoordinator = 0x2eD832Ba664535e5886b75D64C46EB9a228C2610;
     address vrfCoordinator;
-
-    // Use highest gas lane
-    // bytes32 keyHash = 0x354d2f95da55398f44b7cff77da56283d9c6c829a4bdf1bbcaf2ad6a4d081f61;
     bytes32 keyHash;
 
     // Depends on the number of requested values that you want sent to the
@@ -44,8 +37,10 @@ contract Sneaker_ERC721 is
     // The default is 3.
     uint16 requestConfirmations = 3;
 
-    // HRX Token
-    IERC20 public immutable HRX_Token;
+    // URI Database
+    IURIDatabase public uriDatabase;
+
+    // NFT Housekeeping and probability arrays set during deployment
     uint256 public currentGen;
     uint256[5] public mintProbabilities;
     uint256[5][5][5][2] public breedProbs;
@@ -60,25 +55,32 @@ contract Sneaker_ERC721 is
     constructor(
         string memory _name,
         string memory _symbol,
-        string memory _baseTokenURI,
-        address _royaltiesReceiver,
         address _vrfCoordinator,
         bytes32 _keyHash,
         uint64 _subscriptionId,
-        address _HRX_Token
+        address _uriDatabase
     )
     VRFConsumerBaseV2(_vrfCoordinator)
-    ERC721Complete(_name, _symbol, _baseTokenURI)
+    ERC721Complete(_name, _symbol, "")
     {
-        require(_royaltiesReceiver != address(0));
+        // Chainlink VRF Coordinator
         COORDINATOR = VRFCoordinatorV2Interface(_vrfCoordinator);
         vrfCoordinator = _vrfCoordinator;
+
+        // Key Hash corresponding to Chainlink VRF gas lane
         keyHash = _keyHash;
+
+        // Subscription ID required for Chainlink VRF V2
         s_subscriptionId = _subscriptionId;
-        royaltiesReceiver = _royaltiesReceiver;
+        
+        // Set sender as default admin for now
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _registerInterface(type(IERC2981).interfaceId);
-        HRX_Token = IERC20(_HRX_Token);
+        
+        // Set URI Database used for
+        if(_uriDatabase == address(0)) revert zeroAddress();
+        uriDatabase = IURIDatabase(_uriDatabase);
+        
+        // Setup storage arrays for probabilities
         mintProbabilities = [500, 800, 900, 975, 1000];
         normalParams[0] = [18, 31, 43, 64, 84];
         normalParams[1] = [3, 1, 3, 5, 3];
@@ -147,15 +149,10 @@ contract Sneaker_ERC721 is
         breedProbs[1][4][4] = [ 0, 0, 0, 500, 1000 ];
     }
 
-    function royaltyInfo(uint256, uint256 salePrice) external view returns (address, uint256) {
-        return(royaltiesReceiver, (salePrice * ROYALTY_PERCENT) / 100);
-    }
-
     function mint(address to) public virtual override onlyRole(MINTER_ROLE) {
         // We cannot just use balanceOf to create the new tokenId because tokens
         // can be burned (destroyed), so we need a separate counter.
-        uint256 currentTokenId = _tokenIdTracker.current();
-        require(currentTokenId < MAX_TOKENS, "Sneaker_ERC721: all tokens have been minted");
+        if(_tokenIdTracker.current() >= MAX_TOKENS) revert maxTokens();
 
         // Generate new random number to assign to stats, finish mint in callback function.
         // Will revert if subscription is not set and funded.
@@ -175,7 +172,6 @@ contract Sneaker_ERC721 is
     function batchMint(address to, uint32 amountToMint) public virtual onlyRole(MINTER_ROLE) {
         if (amountToMint == 0) revert InvalidAmountToMint();
         uint256 currentTokenId = _tokenIdTracker.current();
-        // require(currentTokenId + amountToMint <= MAX_TOKENS, "Sneaker_ERC721: mint would exceed max number of tokens");
         if (currentTokenId + amountToMint > MAX_TOKENS) revert InvalidAmountToMint();
         uint256 requestId = COORDINATOR.requestRandomWords(
             keyHash,
@@ -216,17 +212,18 @@ contract Sneaker_ERC721 is
         tokenIdToSneakerStats[tokenId2].factoryUsed = stats[1].factoryUsed + 1;
     }
 
-    function setRoyaltiesReceiver(address _royaltiesReceiver) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_royaltiesReceiver != address(0));
-        royaltiesReceiver = _royaltiesReceiver;
-    }
-
     function getSneakerStats(uint256 tokenId) public view returns(SneakerStats memory) {
         return tokenIdToSneakerStats[tokenId];
     }
 
-    function addConsumer(address consumer) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        COORDINATOR.addConsumer(s_subscriptionId, consumer);
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+        if( !_exists(tokenId)) revert invalidTokenID();
+        return uriDatabase.tokenURI(tokenId);
+    }
+
+    function setUriDatabase(IURIDatabase _uriDatabase) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (address(_uriDatabase) == address(0)) revert zeroAddress();
+        uriDatabase = _uriDatabase;
     }
 
     /**
@@ -285,8 +282,9 @@ contract Sneaker_ERC721 is
             newStats.globalPoints = newStats.running + newStats.walking + newStats.biking;
 
             _tokenIdTracker.increment();
-            tokenIdToSneakerStats[_tokenIdTracker.current()] = newStats;
-            _safeMint(nftOwner, _tokenIdTracker.current());
+            uint256 tokenId = _tokenIdTracker.current();
+            tokenIdToSneakerStats[tokenId] = newStats;
+            _safeMint(nftOwner, tokenId);
         }
     }
 

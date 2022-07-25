@@ -7,6 +7,7 @@ import "src/token/ERC20MintableBurnableCapped.sol";
 import "src/nft/Sneaker_ERC721.sol";
 import "src/nft/ISneaker_ERC721.sol";
 import "src/nft/Sneaker_ERC721_Distributor.sol";
+import "src/nft/URIDatabase.sol";
 import "./mocks/LinkToken.sol";
 import "./mocks/MockVRFCoordinatorV2.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
@@ -29,7 +30,7 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
     uint64 public subId;
     bytes32 public keyHash; // gasLane
 
-    string public baseURI = "baseURI_test/";
+    URIDatabase public uriDatabase_721;
     ERC20MintableBurnableCapped public mockHrx;
     Sneaker_ERC721 public sneaker_erc721;
     SneakerStats public stats;
@@ -43,15 +44,17 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
         mockHrx = new ERC20MintableBurnableCapped("mockHrx", "mockHrx", 1e27);
         mockHrx.grantRole(MINTER_ROLE, address(this));
 
+        uriDatabase_721 = new URIDatabase();
+        uriDatabase_721.setBaseURI("testURI/");
+
         sneaker_erc721 = new Sneaker_ERC721(
             "HRX Sneaker",
             "HRX Sneaker",
-            baseURI,
-            address(this),
+            // address(this),
             address(vrfCoordinator),
             keyHash,
             subId,
-            address(mockHrx)
+            address(uriDatabase_721)
         );
 
         // give *this contract* the MINTER_ROLE to on sneaker_erc721
@@ -155,7 +158,6 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
         sneaker_erc721.batchMint(address(this), amount);
         vrfCoordinator.fulfillRandomWords(1, address(sneaker_erc721));
         assertEq(sneaker_erc721.balanceOf(address(this)), amount);
-        assertEq(sneaker_erc721.tokenURI(amount), string(abi.encodePacked(baseURI, uint256(amount).toString())));
     }
 
     function testBatchMint() public {

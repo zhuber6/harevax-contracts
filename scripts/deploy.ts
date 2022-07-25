@@ -1,30 +1,66 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// When running the script with `npx hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
-import { ethers } from "hardhat";
+import { BigNumber, Contract, ContractFactory } from "ethers";
+import {parseEther, parseUnits} from "ethers/lib/utils";
+import { ethers, hardhatArguments, artifacts } from "hardhat";
+import {writeFileSync} from "fs";
+import {resolve} from "path";
+import {deploySneakerMain, deploySneakerFuji} from "./deploySneaker";
 
-async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
+export async function deployContracts() {
 
-  // We get the contract to deploy
-  const Greeter = await ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
+  // Get accounts
+  const accounts = await ethers.getSigners();
+  const treasury = accounts[1].address;
+  
+  // Deploy HRX token
+  const HRXTokenFactory: ContractFactory = await ethers.getContractFactory("HRX_Token");
+  const hrxTokenContract: Contract = await HRXTokenFactory.deploy(
+    "HRX Token",
+    "Harevax Token",
+    BigInt(1e27)
+  );
 
-  await greeter.deployed();
+  // Assign deployer minting capabilities
+  await hrxTokenContract.grantRole(
+    ethers.utils.keccak256(
+      ethers.utils.toUtf8Bytes("MINTER_ROLE")
+    ).toString(),
+    accounts[0].address
+  );
 
-  console.log("Greeter deployed to:", greeter.address);
+  // Mint some tokens for deployer
+  await hrxTokenContract.mint(accounts[0].address, parseEther('1000000'));
+
+  // Deploy URI database
+  const URIDatabaseFactory: ContractFactory = await ethers.getContractFactory("URIDatabase");
+  const uriDatabaseContract: Contract = await URIDatabaseFactory.deploy();
+
+  // Deploy Sneaker contract
+  const sneakerContract: Contract = await deploySneakerFuji(
+    uriDatabaseContract.address
+  );
+
+  // Deploy ERC721 Distributor contract
+  const DistributorFactory: ContractFactory = await ethers.getContractFactory("Sneaker_ERC721_Distributor");
+  const DistributorContract: Contract = await DistributorFactory.deploy(
+    sneakerContract.address,
+    hrxTokenContract.address,
+    treasury
+  );
+
+  // Save address data
+  const addressesData = {
+    hrx: hrxTokenContract.address,
+    uirDatabase: uriDatabaseContract.address,
+    sneaker: sneakerContract.address,
+    distributor: DistributorContract.address,
+  };
+
+  console.log('\nSuccessfully deployed Contracts\n');
+  writeFileSync(resolve(__dirname, `${hardhatArguments.network}-contract-addresses.json`), JSON.stringify(addressesData));
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+deployContracts().then(() => process.exit(0))
+  .catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
