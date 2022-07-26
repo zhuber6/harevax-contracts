@@ -34,7 +34,6 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
     URIDatabase public uriDatabase_721;
     ERC20MintableBurnableCapped public mockHrx;
     Sneaker_ERC721 public sneaker_erc721;
-    // SneakerStats public stats;
     SneakerProbabilities public probabilities;
 
     function setUp() public {
