@@ -11,12 +11,19 @@ contract SneakerProbabilities is ISneakerProbabilities {
     // Define probabilities
     uint256[5] public mintProbabilities;
     uint256[5][5][5][2] public breedProbs;
+    uint256[5] private mu;
+    uint256[5] private sigma;
 
     constructor(
 
     ) {
         // Setup storage arrays for probabilities
         mintProbabilities = [500, 800, 900, 975, 1000];
+
+        // Setup normal distribution parameters
+        mu = [18, 31, 43, 64, 84];
+        sigma = [3, 1, 3, 5, 3];
+
         setBreedArrays();
     }
 
@@ -82,24 +89,35 @@ contract SneakerProbabilities is ISneakerProbabilities {
         breedProbs[1][4][4] = [ 0, 0, 0, 500, 1000 ];
     }
 
-    function getBreedProbs(uint256[] calldata index) public view returns (uint256[5] memory) {
-        if (index.length != 3) revert invalidIndexLen();
-        return breedProbs[index[0]][index[1]][index[2]];
+    function getBreedProbs(uint256 generation, uint256 class1, uint256 class2) public view returns (uint256[5] memory) {
+        return breedProbs[generation][class1][class2];
     }
 
     function getMintProbs() public view returns (uint256[5] memory) {
         return mintProbabilities;
     }
+    
+    function getRandClass(uint256 randomNum, uint256[5] calldata probs) public pure returns ( uint32 ) {
+        uint16 rand16 = uint16(randomNum % 1001);
+
+        if ( rand16 <= probs[0] ) return 0;
+        else if ( rand16 > probs[0] && rand16 <= probs[1] ) return 1;
+        else if ( rand16 > probs[1] && rand16 <= probs[2] ) return 2;
+        else if ( rand16 > probs[2] && rand16 <= probs[3] ) return 3;
+        // else if ( rand16 > probs[3] ) return 4;
+        else return 4;
+    }
 
     function NormalRNG(
-        uint256 random_number,
-        uint256 _mu,
-        uint256 _sigma,
+        uint256 randomNum,
+        uint32 _index,
         uint256 _n
-    ) public pure returns (int256[] memory) {
+    ) public view returns (int256[] memory) {
         //generate n random integers normally distributed of mean x0 and standard deviation std
-        uint256[] memory random_array = expand(random_number, _n);
+        uint256[] memory random_array = expand(randomNum, _n);
         int256[] memory final_array = new int256[](_n);
+        uint256 _mu = mu[_index];
+        uint256 _sigma = sigma[_index];
 
         for (uint256 i = 0; i < _n; i++) {
             //by Centrali Limit Thoerem, the count of 1’s, after proper transformation

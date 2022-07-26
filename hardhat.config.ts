@@ -19,7 +19,15 @@ const forkingData = FORK_FUJI ? {
 } : undefined
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.13",
+  solidity: {
+    version: "0.8.13",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 1000,
+      },
+    },
+  },
   networks: {
     hardhat: {
       gasPrice: 225000000000,
@@ -44,7 +52,7 @@ const config: HardhatUserConfig = {
       url: 'https://api.avax.network/ext/bc/C/rpc',
       gasPrice: 225000000000,
       chainId: 43114,
-      // accounts: [process.env.PRIVATE_KEY]
+      // accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     }
   },
   gasReporter: {

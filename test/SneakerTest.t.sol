@@ -34,7 +34,7 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
     URIDatabase public uriDatabase_721;
     ERC20MintableBurnableCapped public mockHrx;
     Sneaker_ERC721 public sneaker_erc721;
-    SneakerStats public stats;
+    // SneakerStats public stats;
     SneakerProbabilities public probabilities;
 
     function setUp() public {
@@ -281,15 +281,15 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
         uint256 _sigma,
         uint256 _n
     ) internal pure returns (int256[] memory) {
-        //generate n random integers normally distributed of mean x0 and standard deviation std
+        // generate n random integers normally distributed of mean x0 and standard deviation std
         uint256[] memory random_array = expand(random_number, _n);
         int256[] memory final_array = new int256[](_n);
 
         for (uint256 i = 0; i < _n; i++) {
-            //by Centrali Limit Thoerem, the count of 1’s, after proper transformation
-            //is approximately normally distributed, in our case of mean 256/2 = 128 and std = 8
+            // by Centrali Limit Thoerem, the count of 1’s, after proper transformation
+            // is approximately normally distributed, in our case of mean 256/2 = 128 and std = 8
             uint256 result = _countOnes(random_array[i]); 
-            //transforming the result to match x0 and std
+            // transforming the result to match x0 and std
             final_array[i] = int256(int(result) * int(_sigma)/8) - 128*int(_sigma)/8 + _mu;
         }
 
@@ -297,9 +297,9 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
     }
 
     function _countOnes(uint256 n) internal pure returns (uint256 count) {
-        //Count the number of ones in the binary representation
-        /// internal function in assembly to count number of 1's
-        /// https://www.geeksforgeeks.org/count-set-bits-in-an-integer/
+        // Count the number of ones in the binary representation
+        // internal function in assembly to count number of 1's
+        // https://www.geeksforgeeks.org/count-set-bits-in-an-integer/
         assembly {
             for { } gt(n, 0) { } {
                 n := and(n, sub(n, 1))
@@ -309,8 +309,8 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
     }
 
     function expand(uint256 randomValue, uint256 n) public pure returns (uint256[] memory expandedValues) {
-        //generate n pseudorandom numbers from a single one
-        //https://docs.chain.link/docs/chainlink-vrf-best-practices/#getting-multiple-random-numbers
+        // generate n pseudorandom numbers from a single one
+        // https://docs.chain.link/docs/chainlink-vrf-best-practices/#getting-multiple-random-numbers
         expandedValues = new uint256[](n);
         for (uint256 i = 0; i < n; i++) {
             expandedValues[i] = uint256(keccak256(abi.encode(randomValue, i)));

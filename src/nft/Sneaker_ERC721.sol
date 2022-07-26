@@ -44,8 +44,6 @@ contract Sneaker_ERC721 is
     // NFT Housekeeping and probability arrays set during deployment
     uint256 public currentGen;
     ISneakerProbabilities private sneakerProbs;
-    uint256[5] private mu;
-    uint256[5] private sigma;
 
     // Mappings
     mapping(uint256 => address) private requestIdToSender;
@@ -81,10 +79,6 @@ contract Sneaker_ERC721 is
         // Set URI Database used for
         if(_uriDatabase == address(0)) revert zeroAddress();
         uriDatabase = IURIDatabase(_uriDatabase);
-        
-        // Setup normal distribution parameters
-        mu = [18, 31, 43, 64, 84];
-        sigma = [3, 1, 3, 5, 3];
 
         sneakerProbs = ISneakerProbabilities(_sneakerProbs);
     }
@@ -126,12 +120,6 @@ contract Sneaker_ERC721 is
     }
 
     function breed(uint256[] calldata tokenIds, address owner) public onlyRole(MINTER_ROLE) {
-        _breed(tokenIds[0], tokenIds[1], owner);
-    }
-
-    function _breed(uint256 tokenId1, uint256 tokenId2, address owner) internal {
-        uint256[] memory breedProbsIndex = new uint256[](3);
-
         // Generate new random number to assign to stats, finish mint in callback function.
         // Will revert if subscription is not set and funded.
         uint256 requestId = COORDINATOR.requestRandomWords(
@@ -145,13 +133,14 @@ contract Sneaker_ERC721 is
         requestIdToSender[requestId] = owner;
         requestIdToNumMint[requestId] = 1;
 
-        breedProbsIndex[0] = currentGen == 0 ? 0 : 1;
-        breedProbsIndex[1] = tokenIdToSneakerStats[tokenId1].class;
-        breedProbsIndex[2] = tokenIdToSneakerStats[tokenId2].class;
-        requestIdToNumProbs[requestId] = sneakerProbs.getBreedProbs(breedProbsIndex);
+        requestIdToNumProbs[requestId] = sneakerProbs.getBreedProbs(
+            currentGen == 0 ? 0 : 1,
+            tokenIdToSneakerStats[tokenIds[0]].class,
+            tokenIdToSneakerStats[tokenIds[1]].class
+        );
 
-        tokenIdToSneakerStats[tokenId1].factoryUsed += 1;
-        tokenIdToSneakerStats[tokenId2].factoryUsed += 1;
+        tokenIdToSneakerStats[tokenIds[0]].factoryUsed += 1;
+        tokenIdToSneakerStats[tokenIds[1]].factoryUsed += 1;
     }
 
     function getSneakerStats(uint256 tokenId) public view returns(SneakerStats memory) {
@@ -177,29 +166,22 @@ contract Sneaker_ERC721 is
         address nftOwner = requestIdToSender[requestId];
         uint256 amountToMint = requestIdToNumMint[requestId];
         uint256[5] memory probs = requestIdToNumProbs[requestId];
-        uint16 randClass;
-        int[] memory randomNorm = new int[](3);
+        int256[] memory randomNorm = new int256[](3);
 
         for (uint256 i = 1; i <= amountToMint; i++) {
-            // Determine class using previous random number
-            randClass = uint16(randomWords[i-1] % 1001);
-
             // Set sneaker gen
             newStats.generation = uint32(currentGen);
 
-            if ( randClass <= probs[0] ) newStats.class = 0;
-            else if ( randClass > probs[0] && randClass <= probs[1] ) newStats.class = 1;
-            else if ( randClass > probs[1] && randClass <= probs[2] ) newStats.class = 2;
-            else if ( randClass > probs[2] && randClass <= probs[3] ) newStats.class = 3;
-            else if ( randClass > probs[3] ) newStats.class = 4;
-
-            randomNorm = sneakerProbs.NormalRNG(
+            // Get class from random number
+            newStats.class = sneakerProbs.getRandClass( 
                 randomWords[i-1],
-                mu[newStats.class],
-                sigma[newStats.class],
-                3
+                probs
             );
 
+            // Get normal values for stats
+            randomNorm = sneakerProbs.NormalRNG( randomWords[i-1], newStats.class, 3 );
+
+            // Assign random stats generated and sum up for global points
             newStats.running = uint32(uint256(randomNorm[0] / 3));
             newStats.walking = uint32(uint256(randomNorm[1] / 3));
             newStats.biking = uint32(uint256(randomNorm[2] / 3));
