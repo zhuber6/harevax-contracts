@@ -1,9 +1,15 @@
 import { BigNumber, Contract, ContractFactory } from "ethers";
 import {parseEther, parseUnits} from "ethers/lib/utils";
 import { ethers, hardhatArguments, artifacts } from "hardhat";
+import { Artifact } from "hardhat/src/types";
 import {writeFileSync} from "fs";
 import {resolve} from "path";
 import {deploySneakerMain, deploySneakerFuji} from "./deploySneaker";
+
+const sneakerArtifact: Artifact = artifacts.readArtifactSync("Sneaker_ERC721");
+const hrxTokenArtifact: Artifact = artifacts.readArtifactSync("HRX_Token");
+const distributorArtifact: Artifact = artifacts.readArtifactSync("Sneaker_ERC721_Distributor");
+const uriDatabaseArtifact: Artifact = artifacts.readArtifactSync("URIDatabase");
 
 export async function deployContracts() {
 
@@ -20,15 +26,17 @@ export async function deployContracts() {
   );
 
   // Assign deployer minting capabilities
-  await hrxTokenContract.grantRole(
+  let tx = await hrxTokenContract.grantRole(
     ethers.utils.keccak256(
       ethers.utils.toUtf8Bytes("MINTER_ROLE")
     ).toString(),
     accounts[0].address
   );
+  tx.wait();
 
   // Mint some tokens for deployer
-  await hrxTokenContract.mint(accounts[0].address, parseEther('1000000'));
+  tx = await hrxTokenContract.mint(accounts[0].address, parseEther('1000000'));
+  tx.wait();
 
   // Deploy URI database
   const URIDatabaseFactory: ContractFactory = await ethers.getContractFactory("URIDatabase");
@@ -55,7 +63,8 @@ export async function deployContracts() {
   // Save address data
   const addressesData = {
     hrx: hrxTokenContract.address,
-    uirDatabase: uriDatabaseContract.address,
+    uriDatabase: uriDatabaseContract.address,
+    sneakerProbs: sneakerProbsContract.address,
     sneaker: sneakerContract.address,
     distributor: DistributorContract.address,
   };

@@ -6,7 +6,6 @@ import "./ERC721Complete.sol";
 import "./ISneaker_ERC721.sol";
 import "./ISneakerProbabilities.sol";
 import "./IURIDatabase.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 

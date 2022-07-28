@@ -18,6 +18,11 @@ const forkingData = FORK_FUJI ? {
   // blockNumber: 12590000
 } : undefined
 
+const accountsEnv: string[] = [
+  process.env.PRIVATE_KEY_2 !== undefined ? process.env.PRIVATE_KEY_2: "",
+  process.env.PRIVATE_KEY_1 !== undefined ? process.env.PRIVATE_KEY_1: ""
+];
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.13",
@@ -46,13 +51,13 @@ const config: HardhatUserConfig = {
       url: 'https://api.avax-test.network/ext/bc/C/rpc',
       gasPrice: 225000000000,
       chainId: 43113,
-      accounts: process.env.PRIVATE_KEY_2 !== undefined ? [process.env.PRIVATE_KEY_2] : [],
+      accounts: accountsEnv,
     },
     mainnet: {
       url: 'https://api.avax.network/ext/bc/C/rpc',
       gasPrice: 225000000000,
       chainId: 43114,
-      // accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      // accounts: process.env.PRIVATE_KEY_2 !== undefined ? [process.env.PRIVATE_KEY_2] : [],
     }
   },
   gasReporter: {

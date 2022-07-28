@@ -31,7 +31,9 @@ export async function deploySneakerMain(
     "VRFCoordinatorV2Interface",
     vrfCordMain
   );
-  await VRFCoordinatorV2Contract.addConsumer(subIdMain , SneakerContract.address)
+  
+  const tx = await VRFCoordinatorV2Contract.addConsumer(subIdMain , SneakerContract.address);
+  tx.wait();
 
   return SneakerContract;
 }
@@ -66,7 +68,9 @@ export async function deploySneakerFuji(
     "VRFCoordinatorV2Interface",
     vrfCordFuji
   );
-  await VRFCoordinatorV2Contract.addConsumer(subIdFuji , SneakerContract.address)
+
+  const tx = await VRFCoordinatorV2Contract.addConsumer(subIdFuji , SneakerContract.address);
+  tx.wait();
 
   return SneakerContract;
 }
