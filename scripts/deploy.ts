@@ -60,6 +60,15 @@ export async function deployContracts() {
     treasury
   );
 
+  // Assign distributor minting and burning capabilities
+  tx = await sneakerContract.grantRole(
+    ethers.utils.keccak256(
+      ethers.utils.toUtf8Bytes("MINTER_ROLE")
+    ).toString(),
+    DistributorContract.address
+  );
+  tx.wait();
+
   // Save address data
   const addressesData = {
     hrx: hrxTokenContract.address,

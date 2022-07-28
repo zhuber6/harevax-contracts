@@ -1,6 +1,8 @@
 import * as dotenv from "dotenv";
 
+import { parseEther } from "ethers/lib/utils";
 import { HardhatUserConfig, task } from "hardhat/config";
+import { HardhatNetworkAccountsUserConfig } from "hardhat/types";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
@@ -9,11 +11,13 @@ import "solidity-coverage";
 
 dotenv.config();
 
-const FORK_FUJI = false
+const FORK_FUJI = true
 const FORK_MAINNET = false
 const forkingData = FORK_FUJI ? {
+  enabled: FORK_FUJI,
   url: 'https://api.avax-test.network/ext/bc/C/rpc',
 } : FORK_MAINNET ? {
+  enabled: FORK_MAINNET,
   url: 'https://api.avax.network/ext/bc/C/rpc',
   // blockNumber: 12590000
 } : undefined
@@ -22,6 +26,11 @@ const accountsEnv: string[] = [
   process.env.PRIVATE_KEY_2 !== undefined ? process.env.PRIVATE_KEY_2: "",
   process.env.PRIVATE_KEY_1 !== undefined ? process.env.PRIVATE_KEY_1: ""
 ];
+
+const accountsFork: HardhatNetworkAccountsUserConfig = [{
+  privateKey: process.env.PRIVATE_KEY_2 !== undefined ? process.env.PRIVATE_KEY_2: "",
+  balance: parseEther('1000').toString(),
+}];
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -38,6 +47,7 @@ const config: HardhatUserConfig = {
       gasPrice: 225000000000,
       chainId: 43114,
       forking: forkingData,
+      accounts: accountsFork
       // allowUnlimitedContractSize: true
     },
     local: {
