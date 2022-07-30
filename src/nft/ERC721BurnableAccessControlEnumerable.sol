@@ -2,14 +2,20 @@
 
 pragma solidity ^0.8.0;
 
-import "./ERC721MintableBurnableAccessControl.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 
 /**
  * @dev This implements an optional extension of {ERC721} defined in the EIP that adds
  * enumerability of all the token ids in the contract as well as all token ids owned by each
  * account.
  */
-abstract contract ERC721MintableBurnableAccessControlEnumerable is ERC721MintableBurnableAccessControl {
+abstract contract ERC721BurnableAccessControlEnumerable is 
+    AccessControlEnumerable,
+    ERC721Burnable
+{
     // Mapping from owner to list of owned token IDs
     mapping(address => mapping(uint256 => uint256)) private _ownedTokens;
 
@@ -22,18 +28,37 @@ abstract contract ERC721MintableBurnableAccessControlEnumerable is ERC721Mintabl
     // Mapping from token id to position in the allTokens array
     mapping(uint256 => uint256) private _allTokensIndex;
 
+    // baseTokenURI
+    string private _baseTokenURI;
+
     constructor(
         string memory name,
         string memory symbol,
         string memory baseTokenURI
-    ) ERC721MintableBurnableAccessControl(name, symbol, baseTokenURI) {
+    ) ERC721(name, symbol) {
+        _baseTokenURI = baseTokenURI;
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    }
+
+    function setBaseUri(string memory _newBaseMetadataURI) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _baseTokenURI = _newBaseMetadataURI;
+    }
+
+    function _baseURI() internal view virtual override returns (string memory) {
+        return _baseTokenURI;
     }
 
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IERC721Enumerable).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(AccessControlEnumerable, ERC721)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
 
     /**

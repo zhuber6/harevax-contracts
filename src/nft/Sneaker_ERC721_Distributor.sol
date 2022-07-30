@@ -5,12 +5,13 @@ pragma solidity ^0.8.0;
 import "./Sneaker_ERC721.sol";
 import "./ISneaker_ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 //should be given MINTER_ROLE on Sneaker_ERC721
-contract Sneaker_ERC721_Distributor is ISneaker_ERC721, Ownable {
+contract Sneaker_ERC721_Distributor is Ownable {
     
-    Sneaker_ERC721 public sneaker_erc721;       // set in constructor
+    address public sneaker_erc721;              // set in constructor
     IERC20 public immutable HRX_Token;          // set in constructor
     address public immutable treasury;          // set in constructor
     uint256[15] public breedFee;                // set in constructor
@@ -24,7 +25,7 @@ contract Sneaker_ERC721_Distributor is ISneaker_ERC721, Ownable {
     error BreedNotAllowed(uint256 errorCode);
 
     constructor(
-        Sneaker_ERC721 _sneaker_erc721,
+        address _sneaker_erc721,
         IERC20 _HRX_Token,
         address _treasury
     ) {
@@ -52,24 +53,24 @@ contract Sneaker_ERC721_Distributor is ISneaker_ERC721, Ownable {
         if (canMint(msg.sender) != 0) revert MintNotAllowed();
         HRX_Token.transferFrom(msg.sender, treasury, MINT_PRICE);
         tokensMinted[msg.sender] += 1;
-        sneaker_erc721.mint(msg.sender);
+        ISneaker_ERC721(sneaker_erc721).mint(msg.sender);
     }
 
     function canBreed( uint256[] calldata tokenIds, address user) public view returns(uint256) {
-        if (sneaker_erc721.balanceOf(user) < 2) {
+        if (IERC721(sneaker_erc721).balanceOf(user) < 2) {
             return 1;
         }
 
         if (
-            sneaker_erc721.ownerOf(tokenIds[0]) != user ||
-            sneaker_erc721.ownerOf(tokenIds[1]) != user
+            IERC721(sneaker_erc721).ownerOf(tokenIds[0]) != user ||
+            IERC721(sneaker_erc721).ownerOf(tokenIds[1]) != user
         ) {
             return 2;
         }
 
-        SneakerStats[] memory stats = new SneakerStats[](2);
-        stats[0] = sneaker_erc721.getSneakerStats(tokenIds[0]);
-        stats[1] = sneaker_erc721.getSneakerStats(tokenIds[1]);
+        ISneaker_ERC721.SneakerStats[] memory stats = new ISneaker_ERC721.SneakerStats[](2);
+        stats[0] = ISneaker_ERC721(sneaker_erc721).getSneakerStats(tokenIds[0]);
+        stats[1] = ISneaker_ERC721(sneaker_erc721).getSneakerStats(tokenIds[1]);
 
         if (HRX_Token.balanceOf(user) < _getBreedFee(tokenIds)) {
             return 3;
@@ -87,9 +88,9 @@ contract Sneaker_ERC721_Distributor is ISneaker_ERC721, Ownable {
     }
 
     function _getBreedFee(uint256[] calldata tokenIds) internal view returns(uint256) {
-        SneakerStats[] memory stats = new SneakerStats[](2);
-        stats[0] = sneaker_erc721.getSneakerStats(tokenIds[0]);
-        stats[1] = sneaker_erc721.getSneakerStats(tokenIds[1]);
+        ISneaker_ERC721.SneakerStats[] memory stats = new ISneaker_ERC721.SneakerStats[](2);
+        stats[0] = ISneaker_ERC721(sneaker_erc721).getSneakerStats(tokenIds[0]);
+        stats[1] = ISneaker_ERC721(sneaker_erc721).getSneakerStats(tokenIds[1]);
 
         uint32 feeIndex = stats[0].factoryUsed + stats[1].factoryUsed;
         return breedFee[feeIndex];
@@ -102,6 +103,6 @@ contract Sneaker_ERC721_Distributor is ISneaker_ERC721, Ownable {
         if (canBreedVal != 0) revert BreedNotAllowed(canBreedVal);
 
         HRX_Token.transferFrom(msg.sender, treasury, _getBreedFee(tokenIds));
-        sneaker_erc721.breed(tokenIds, msg.sender);
+        ISneaker_ERC721(sneaker_erc721).breed(tokenIds, msg.sender);
     }
 }

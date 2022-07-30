@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import "./ERC721MintableBurnableAccessControlEnumerable.sol";
+import "./ERC721BurnableAccessControlEnumerable.sol";
 
-contract ERC721Complete is ERC721MintableBurnableAccessControlEnumerable {
+contract ERC721Complete is ERC721BurnableAccessControlEnumerable {
     /**
      * @dev Mapping of interface ids to whether or not it's supported.
      */
@@ -13,7 +13,7 @@ contract ERC721Complete is ERC721MintableBurnableAccessControlEnumerable {
         string memory name,
         string memory symbol,
         string memory baseTokenURI
-    ) ERC721MintableBurnableAccessControlEnumerable(name, symbol, baseTokenURI) {
+    ) ERC721BurnableAccessControlEnumerable(name, symbol, baseTokenURI) {
         _registerInterface(type(IERC165).interfaceId);
         _registerInterface(type(IAccessControl).interfaceId);
         _registerInterface(type(IAccessControlEnumerable).interfaceId);
