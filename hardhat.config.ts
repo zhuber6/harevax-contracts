@@ -8,10 +8,15 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import {accountsTask} from "./tasks/accounts";
 
+// Load environment variables from .env
 dotenv.config();
 
-const FORK_FUJI = true
+// Load hardhat tasks
+accountsTask();
+
+const FORK_FUJI = false
 const FORK_MAINNET = false
 const forkingData = FORK_FUJI ? {
   enabled: FORK_FUJI,
@@ -47,7 +52,7 @@ const config: HardhatUserConfig = {
       gasPrice: 225000000000,
       chainId: 43114,
       forking: forkingData,
-      accounts: accountsFork
+      accounts: FORK_FUJI ? accountsFork : undefined
       // allowUnlimitedContractSize: true
     },
     local: {

@@ -8,6 +8,7 @@ import "./ISneakerProbabilities.sol";
 import "./IURIDatabase.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract Sneaker_ERC721 is 
     ISneaker_ERC721,
@@ -15,6 +16,8 @@ contract Sneaker_ERC721 is
     VRFConsumerBaseV2
 {
     using Counters for Counters.Counter;
+    Counters.Counter internal _tokenIdTracker;
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     // Errors
     error InvalidAmountToMint();
@@ -32,7 +35,8 @@ contract Sneaker_ERC721 is
 
     // Depends on the number of requested values that you want sent to the
     // fulfillRandomWords() function. Storing each word costs about 20,000 gas.
-    uint32 private callbackGasLimit = 10000000;
+    // Max gas limit is 2,500,000
+    uint32 private callbackGasLimit = 2500000;
 
     // The default is 3.
     uint16 private requestConfirmations = 3;
@@ -82,7 +86,7 @@ contract Sneaker_ERC721 is
         sneakerProbs = ISneakerProbabilities(_sneakerProbs);
     }
 
-    function mint(address to) public virtual override onlyRole(MINTER_ROLE) {
+    function mint(address to) public onlyRole(MINTER_ROLE) {
         // We cannot just use balanceOf to create the new tokenId because tokens
         // can be burned (destroyed), so we need a separate counter.
         if(_tokenIdTracker.current() >= MAX_TOKENS) revert maxTokens();
@@ -143,7 +147,12 @@ contract Sneaker_ERC721 is
     }
 
     function getSneakerStats(uint256 tokenId) public view returns(SneakerStats memory) {
+        if( !_exists(tokenId)) revert invalidTokenID();
         return tokenIdToSneakerStats[tokenId];
+    }
+
+    function setCurrentGen(uint256 gen) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        currentGen =  gen;
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {

@@ -13,7 +13,7 @@ import "./mocks/LinkToken.sol";
 import "./mocks/MockVRFCoordinatorV2.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
+contract SneakerTest is IERC721Receiver, Test {
     using Strings for uint256;
     bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -70,7 +70,11 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
         uint256 counter = 0;
 
         // Create distributor contract
-        Sneaker_ERC721_Distributor distributor = new Sneaker_ERC721_Distributor(sneaker_erc721, mockHrx, treasury);
+        Sneaker_ERC721_Distributor distributor = new Sneaker_ERC721_Distributor(
+            address(sneaker_erc721),
+            mockHrx,
+            treasury
+        );
 
         // give the distributor contract the MINTER_ROLE to on sneaker_erc721
         sneaker_erc721.grantRole(MINTER_ROLE, address(distributor));
@@ -111,7 +115,11 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
         uint32 numOfMintedErc721 = 5;
 
         // Create distributor contract
-        Sneaker_ERC721_Distributor distributor = new Sneaker_ERC721_Distributor(sneaker_erc721, mockHrx, treasury);
+        Sneaker_ERC721_Distributor distributor = new Sneaker_ERC721_Distributor(
+            address(sneaker_erc721),
+            mockHrx,
+            treasury
+        );
 
         // give the distributor contract the MINTER_ROLE to on sneaker_erc721
         sneaker_erc721.grantRole(MINTER_ROLE, address(distributor));
@@ -136,7 +144,7 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
         assertEq(mockHrx.balanceOf(address(this)), 1e24 - breedCost);
         assertEq(mockHrx.balanceOf(address(treasury)), breedCost);
 
-        SneakerStats memory stats;
+        ISneaker_ERC721.SneakerStats memory stats;
         for (uint256 i = 1; i <= 6; i++) {
             tokenIds[0] = 1;
             tokenIds[1] = 3;
@@ -178,7 +186,7 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
         vrfCoordinator.fulfillRandomWords(1, address(sneaker_erc721));
 
         for (uint256 i = 1; i <= maxErc721Tokens; i++) {
-            SneakerStats memory stats = sneaker_erc721.getSneakerStats(i);
+            ISneaker_ERC721.SneakerStats memory stats = sneaker_erc721.getSneakerStats(i);
             sum += stats.globalPoints;
             
             if ( stats.class == 0 ) {
@@ -207,7 +215,7 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
     function testRandomStats() public {
         uint256 iter = 5000;
         uint256 word;
-        SneakerStats memory stats;
+        ISneaker_ERC721.SneakerStats memory stats;
 
         for (uint256 i = 1; i <= iter; i++) {
             word = uint256(keccak256(abi.encode(1, i)));
@@ -254,9 +262,9 @@ contract SneakerTest is ISneaker_ERC721, IERC721Receiver, Test {
         int256 mu,
         uint256 sigma,
         uint256 randWord
-    ) public pure returns (SneakerStats memory) {
+    ) public pure returns (ISneaker_ERC721.SneakerStats memory) {
         // Determine class using previous random number
-        SneakerStats memory stats;
+        ISneaker_ERC721.SneakerStats memory stats;
         int[] memory randomNorm = new int[](3);
 
         randomNorm = NormalRNG(

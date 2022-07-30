@@ -22,4 +22,10 @@ interface ISneaker_ERC721 {
         uint32 factoryUsed;
         uint32 energy;
     }
+
+    function mint(address to) external;
+    function batchMint(address to, uint32 amountToMint) external;
+    function breed(uint256[] calldata tokenIds, address owner) external;
+    function getSneakerStats(uint256 tokenId) external view returns(SneakerStats memory);
+    function setCurrentGen(uint256 gen) external;
 }
