@@ -34,6 +34,7 @@ export async function deployContracts() {
 
   // Wait for contract to be deployed
   await hrxTokenContract.deployed();
+  console.log("HRX Token Address:", hrxTokenContract.address);
 
   // Assign deployer minting capabilities
   tx = await hrxTokenContract.grantRole(
@@ -54,6 +55,7 @@ export async function deployContracts() {
 
   // Wait for contract to be deployed
   await uriDatabaseContract.deployed();
+  console.log("URI Database Address:", uriDatabaseContract.address);
   
   // Deploy Sneaker Probabilities contract
   const SneakerProbsFactory: ContractFactory = await ethers.getContractFactory("SneakerProbabilities");
@@ -61,6 +63,7 @@ export async function deployContracts() {
 
   // Wait for contract to be deployed
   await sneakerProbsContract.deployed();
+  console.log("Sneaker Probs Address:", sneakerProbsContract.address);
 
   // const hrxTokenContract: Contract = await ethers.getContractAt(hrxTokenArtifact.abi, contractAddresses.hrx);
   // const sneakerProbsContract: Contract = await ethers.getContractAt(sneakerProbsArtifact.abi, contractAddresses.sneakerProbs);
@@ -82,6 +85,7 @@ export async function deployContracts() {
 
   // Wait for contract to be deployed
   await DistributorContract.deployed();
+  console.log("Distributor Address:", DistributorContract.address);
 
   // Assign distributor minting and burning capabilities
   tx = await sneakerContract.grantRole(

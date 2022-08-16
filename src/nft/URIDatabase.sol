@@ -9,10 +9,14 @@ import "./IURIDatabase.sol";
 contract URIDatabase is Ownable, IURIDatabase {
     using Strings for uint256;
     string public baseURI;
+    mapping (uint256 => string) public storedTokenUri;
     function setBaseURI(string calldata _baseURI) external onlyOwner {
         baseURI = _baseURI;
     }
+    function setTokenURI(uint256 tokenId, string calldata _tokenURI) external onlyOwner {
+        storedTokenUri[tokenId] = _tokenURI;
+    }
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, tokenId.toString(), "json")) : "";
+        return storedTokenUri[tokenId];
     }
 }
