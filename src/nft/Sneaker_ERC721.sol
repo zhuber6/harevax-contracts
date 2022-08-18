@@ -24,6 +24,7 @@ contract Sneaker_ERC721 is
     error invalidTokenID();
     error zeroAddress();
     error maxTokens();
+    error notTokenOwner();
     
     uint32 constant public MAX_TOKENS = 10000;
     
@@ -166,6 +167,12 @@ contract Sneaker_ERC721 is
     function setUriDatabase(IURIDatabase _uriDatabase) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (address(_uriDatabase) == address(0)) revert zeroAddress();
         uriDatabase = _uriDatabase;
+    }
+    
+    function setTokenURI(uint256 tokenId, string calldata uri) external {
+        if( !_exists(tokenId)) revert invalidTokenID();
+        if (ownerOf(tokenId) != msg.sender) revert notTokenOwner();
+        uriDatabase.setTokenURI(tokenId, uri);
     }
 
     function fulfillRandomWords(

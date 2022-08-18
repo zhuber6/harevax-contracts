@@ -28,4 +28,5 @@ interface ISneaker_ERC721 {
     function breed(uint256[] calldata tokenIds, address owner) external;
     function getSneakerStats(uint256 tokenId) external view returns(SneakerStats memory);
     function setCurrentGen(uint256 gen) external;
+    function setTokenURI(uint256 tokenId, string calldata uri) external;
 }
