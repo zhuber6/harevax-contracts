@@ -22,7 +22,7 @@ export async function deploySneakerFuji() {
   const keyHashFuji = "0x354d2f95da55398f44b7cff77da56283d9c6c829a4bdf1bbcaf2ad6a4d081f61";
 
   // Avalanche Fuji Testnet Chainlink key ID
-  const subIdFuji = 134;
+  const subIdFuji = 338;
 
   // Add the sneaker contract as the consumer
   const VRFCoordinatorV2Contract: Contract = await ethers.getContractAt(
@@ -47,13 +47,12 @@ export async function deploySneakerFuji() {
 
   // Wait for contract to be deployed
   await SneakerContract.deployed();
+  console.log(SneakerContract.address);
 
   if (hardhatArguments.network !== "local") {
     tx = await VRFCoordinatorV2Contract.addConsumer(subIdFuji , SneakerContract.address);
     await tx.wait();
   }
-
-  console.log(SneakerContract.address);
 }
 
 deploySneakerFuji().then(() => process.exit(0))

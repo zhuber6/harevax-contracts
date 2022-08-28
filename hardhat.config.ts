@@ -9,12 +9,14 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import {accountsTask} from "./tasks/accounts";
+import {tokenUriTask} from "./tasks/tokenUri";
 
 // Load environment variables from .env
 dotenv.config();
 
 // Load hardhat tasks
 accountsTask();
+tokenUriTask();
 
 const FORK_FUJI = false
 const FORK_MAINNET = false
@@ -49,6 +51,10 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      mining: {
+        auto: false,
+        interval: [3000, 6000]
+      },
       gasPrice: 225000000000,
       chainId: 43114,
       forking: forkingData,

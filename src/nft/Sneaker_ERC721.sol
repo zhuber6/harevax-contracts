@@ -24,6 +24,7 @@ contract Sneaker_ERC721 is
     error invalidTokenID();
     error zeroAddress();
     error maxTokens();
+    error notTokenOwner();
     
     uint32 constant public MAX_TOKENS = 10000;
     
@@ -53,6 +54,9 @@ contract Sneaker_ERC721 is
     mapping(uint256 => uint256) private requestIdToNumMint;
     mapping(uint256 => SneakerStats) public tokenIdToSneakerStats;
     mapping(uint256 => uint256[5]) private requestIdToNumProbs;
+
+    // Events
+    event Mint(address indexed owner, uint256 indexed tokenId);
 
     constructor(
         string memory _name,
@@ -86,7 +90,7 @@ contract Sneaker_ERC721 is
         sneakerProbs = ISneakerProbabilities(_sneakerProbs);
     }
 
-    function mint(address to) public onlyRole(MINTER_ROLE) {
+    function mint(address to) public {
         // We cannot just use balanceOf to create the new tokenId because tokens
         // can be burned (destroyed), so we need a separate counter.
         if(_tokenIdTracker.current() >= MAX_TOKENS) revert maxTokens();
@@ -164,6 +168,12 @@ contract Sneaker_ERC721 is
         if (address(_uriDatabase) == address(0)) revert zeroAddress();
         uriDatabase = _uriDatabase;
     }
+    
+    function setTokenURI(uint256 tokenId, string calldata uri) external {
+        if( !_exists(tokenId)) revert invalidTokenID();
+        if (ownerOf(tokenId) != msg.sender) revert notTokenOwner();
+        uriDatabase.setTokenURI(tokenId, uri);
+    }
 
     function fulfillRandomWords(
         uint256 requestId,
@@ -194,11 +204,13 @@ contract Sneaker_ERC721 is
             newStats.walking = uint32(uint256(randomNorm[1] / 3));
             newStats.biking = uint32(uint256(randomNorm[2] / 3));
             newStats.globalPoints = newStats.running + newStats.walking + newStats.biking;
+            newStats.energy = 100;
 
             _tokenIdTracker.increment();
             uint256 tokenId = _tokenIdTracker.current();
             tokenIdToSneakerStats[tokenId] = newStats;
             _safeMint(nftOwner, tokenId);
+            emit Mint( nftOwner, tokenId );
         }
     }
 }
