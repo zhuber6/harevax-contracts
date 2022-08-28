@@ -19,7 +19,6 @@ jobs:
           node-version: 16
           cache: 'npm'
       - run: npm ci
-      - run: npm test
 
       - name: Install Foundry
         uses: onbjerg/foundry-toolchain@v1
